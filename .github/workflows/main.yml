@@ -6,13 +6,13 @@ name: Build Electron App For Win/Mac
 # Workflow's trigger
 on: 
   push:
-    tags: 111
+    tags:
       - "v*.*.*"
 
 # Workflow's jobs
-jobs: 1111
+jobs:
   # job's id
-  release: 1
+  release:
     # job's name
     name: build and release electron app
 
@@ -21,9 +21,9 @@ jobs: 1111
 
     # create a build matrix for jobs
     strategy:
-      fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [windows-2019, macos-latest, ubuntu-latest]
+        node-version: [14.x]
 
     # create steps
     steps:
@@ -34,6 +34,8 @@ jobs: 1111
       # step2: install node env
       - name: Install Node.js
         uses: actions/setup-node@v2-beta
+        with:
+          node-version: ${{ matrix.node-version }}
 
       # step3: npm install
       - name: npm install
@@ -41,18 +43,26 @@ jobs: 1111
           npm install
 
       # step4: build app for mac/win
-      - name: build windows app
-        if: matrix.os == 'windows-2019'
+      - name: build app
         run: |
-          npm run build:win
+          if [[ "$MATRIX_OS" == "windows-2019" ]]; then
+            npm run build:win
+          elif [[ "$MATRIX_OS" == "macos-latest" ]]; then
+            npm run build:mac
+          else
+            npm run build:linux
+          fi
         env:
-          GH_TOKEN: 0a3bae278847fc20faead13e019671093df5d7d0
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       # step5: cleanup artifacts in build
-      - name: cleanup artifacts for windows
-        if: matrix.os == 'windows-2019'
+      - name: cleanup artifacts
         run: |
-          npx rimraf "build/!(*.exe|latest.yml)"
+          if [[ "$MATRIX_OS" == "windows-2019" ]]; then
+            npx rimraf "build/!(*.exe|latest.yml)"
+          else
+            npx rimraf "build/!(*.dmg|latest.yml)"
+          fi
 
       # step6: upload artifacts
       - name: upload artifacts
@@ -62,11 +72,10 @@ jobs: 1111
           path: build
 
       # step7: create release
-      - name: release
+      - name: create release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: "build/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
