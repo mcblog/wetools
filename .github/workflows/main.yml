@@ -6,13 +6,13 @@ name: Build Electron App For Win/Mac
 # Workflow's trigger
 on: 
   push:
-    tags:
+    tags: 111
       - "v*.*.*"
 
 # Workflow's jobs
-jobs:
+jobs: 1111
   # job's id
-  release:
+  release: 1
     # job's name
     name: build and release electron app
 
